@@ -1,5 +1,7 @@
 # alidade-templates
 
+[![Demo](https://github.com/alidade-ml/alidade-templates/actions/workflows/demo.yml/badge.svg)](https://github.com/alidade-ml/alidade-templates/actions/workflows/demo.yml)
+
 Runnable starting points for [alidade](https://github.com/alidade-ml/alidade)
 experiments. Clone one, change the training loop, submit it.
 
