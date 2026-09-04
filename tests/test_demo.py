@@ -12,6 +12,7 @@ names from it is what lets a green run here say anything about the engine at all
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -50,6 +51,18 @@ def _run_demo(env: dict[str, str]) -> subprocess.CompletedProcess:
     )
 
 
+def _aim_cli() -> str:
+    """Aim has no `python -m aim`, so the console script is the only route."""
+    sibling = Path(sys.executable).parent / "aim"
+    found = str(sibling) if sibling.exists() else shutil.which("aim")
+    if not found:
+        raise RuntimeError(
+            "aim console script not found; the reindex below would be skipped "
+            "and every assertion in this file would pass against an empty repo"
+        )
+    return found
+
+
 def _find_run(aim_path: Path, submit_id: str):
     """Locate a run by the tag the orchestrator supplied.
 
@@ -61,8 +74,7 @@ def _find_run(aim_path: Path, submit_id: str):
     if not (aim_path / ".aim").exists():
         return None
     subprocess.run(
-        [str(Path(sys.executable).parent / "aim"), "storage",
-         "--repo", str(aim_path), "reindex", "-y"],
+        [_aim_cli(), "storage", "--repo", str(aim_path), "reindex", "-y"],
         capture_output=True,
         text=True,
         timeout=300,
