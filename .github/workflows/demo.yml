@@ -15,9 +15,15 @@ on:
   schedule:
     - cron: "0 7 * * 1"
   workflow_dispatch:
+  # Sent by alidade-callbacks when it publishes a release, so a breaking change
+  # is reported against its consumers rather than found later by whoever
+  # cloned this next.
+  repository_dispatch:
+    types: [callbacks-released]
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   demo:
@@ -39,4 +45,57 @@ jobs:
         run: python -c "import alidade_callbacks; print(alidade_callbacks.__file__)"
 
       - name: Run the demo and assert what landed
+        id: demo
         run: pytest tests/ -q
+
+      # A scheduled check that goes quietly red is a check nobody reads. Unlike
+      # alidade-callbacks' dep-watch, which only fires when a new version
+      # appears, this runs weekly regardless — so it dedupes, or a lasting
+      # breakage files an issue every Monday.
+      - name: Report a broken demo
+        if: failure() && github.event_name != 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = 'demo-broken';
+            const open = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: label,
+            });
+            if (open.data.length > 0) {
+              core.info(`#${open.data[0].number} is already open; not filing another.`);
+              return;
+            }
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const trigger = context.eventName === 'repository_dispatch'
+              ? `a new \`alidade-callbacks\` release`
+              : `the ${context.eventName} run`;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'The canary demo no longer works against its pinned callbacks',
+              labels: [label],
+              body: [
+                `Triggered by ${trigger}.`,
+                ``,
+                `**Anyone who cloned this repo has the same breakage.** The demo`,
+                `installs the wheel pinned in \`canary/requirements.txt\`, runs`,
+                `\`canary/train.py\`, and asserts what reached Aim. One of those`,
+                `stopped working.`,
+                ``,
+                `**Run**: ${runUrl}`,
+                ``,
+                `Reproduce:`,
+                '```',
+                `pip install -r canary/requirements.txt pytest`,
+                `pytest tests/ -q`,
+                '```',
+                ``,
+                `If a newer callbacks release fixes it, move the pin in`,
+                `\`canary/requirements.txt\` and close this. If the release is`,
+                `genuinely breaking, say so on the callbacks release before`,
+                `anyone else installs it.`,
+              ].join('\n'),
+            });
