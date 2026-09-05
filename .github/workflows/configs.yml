@@ -1,0 +1,91 @@
+# Do the configs in this repo still parse as alidade configs?
+#
+# tests/test_configs.py checks what this repo can check alone: the YAML parses,
+# and the files a config's steps name are present. It cannot check the schema,
+# because the schema lives in alidade.
+#
+# So this job installs alidade and runs the real parser. That needs read access
+# to a private repo, which means a token:
+#
+#   ALIDADE_READ_TOKEN — read-only, contents scope, alidade-ml/alidade
+#
+# Two things follow from that, both deliberate:
+#
+#   * Pull requests from forks get no secrets, by GitHub's design. The job skips
+#     for outside contributors rather than failing, and the engine-side contract
+#     test in alidade covers the same ground on its own schedule.
+#   * This repo's CI logs are public. Nothing here prints the token or the
+#     installed source, and nothing added later should.
+
+name: Configs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parse:
+    name: alidade accepts every config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check the read token exists
+        id: token
+        env:
+          TOKEN: ${{ secrets.ALIDADE_READ_TOKEN }}
+        run: |
+          if [ -z "${TOKEN}" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::ALIDADE_READ_TOKEN is not set (expected on a fork). Configs were not checked against alidade's parser."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install alidade
+        if: steps.token.outputs.present == 'true'
+        env:
+          TOKEN: ${{ secrets.ALIDADE_READ_TOKEN }}
+        run: |
+          # --quiet so a resolver line cannot echo the URL into a public log.
+          pip install --quiet pyyaml
+          pip install --quiet "git+https://x-access-token:${TOKEN}@github.com/alidade-ml/alidade.git@dev"
+
+      - name: Parse every config with alidade's own parser
+        if: steps.token.outputs.present == 'true'
+        run: |
+          python - <<'PY'
+          import pathlib, sys
+          from alidade.config import load_config_text
+
+          configs = sorted(pathlib.Path(".").glob("*/*.yaml"))
+          if not configs:
+              sys.exit("no configs found; this check would pass by doing nothing")
+
+          rejected = {}
+          for path in configs:
+              try:
+                  load_config_text(path.read_text(), source=str(path))
+              except Exception as e:
+                  rejected[str(path)] = f"{type(e).__name__}: {e}"
+
+          for path in configs:
+              print(("REJECTED " if str(path) in rejected else "ok       ") + str(path))
+          if rejected:
+              sys.exit(
+                  "\nalidade rejects "
+                  + ", ".join(rejected)
+                  + ". Anyone who clones this repo gets a config the engine refuses.\n"
+                  + "\n".join(f"  {p}: {why}" for p, why in rejected.items())
+              )
+          PY
