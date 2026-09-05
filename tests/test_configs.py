@@ -1,10 +1,17 @@
 """Every config in this repo is well-formed and points at things that exist.
 
-What this file deliberately does not do is validate against alidade's schema.
-That needs alidade's parser, alidade is private, and this repo is public, so a
-check here would be a hand-written restatement of a schema it cannot see, which
-drifts the moment the real one moves. Schema validation lives in alidade, in a
-contract-marked test that fetches these files.
+What this file deliberately does not do is validate against alidade's schema. A
+hand-written restatement would drift the moment the real one moved, and running
+the real parser needs alidade installed.
+
+Giving this repo a token to install it was considered and rejected. Fork pull
+requests get no secrets, but a branch pull request does, so the token would be
+exactly as protected as write access to this public repo. Granting a contributor
+write access here would silently grant them read access to the engine.
+
+Schema validation therefore lives in alidade, whose contract suite fetches these
+files. The gap that leaves is real and worth naming: adding a config here is not
+checked against the engine on the pull request that adds it.
 
 So the division is: alidade decides whether a config is legal, and this repo
 decides whether it is honest about its own contents.
