@@ -25,6 +25,10 @@ experiment:
       command: python src/convert_data.py --dataset allenai/c4 --data_subset en --out_root ./data/c4 --splits train,val 2>&1 | tee "$LOGDIR/convert.log"
     - label: Train model
       command: composer -n $GPUS scripts/train.py configs/training/latent_bert_256.yaml 2>&1 | tee "$LOGDIR/train.log"
+      healing:
+        until: first_metric
+        max_attempts: 3
+        max_cost_dollars: 50
     - label: Upload results
       command: python scripts/hf_upload.py both --run_name latent_bert_256 2>&1 | tee "$LOGDIR/upload.log"
 
@@ -44,7 +48,6 @@ backend:
     - .venv/
     - plans/
 
-healing:
-  enabled: true
-  provider: claude_code
-  max_retries: 3
+# Names the healer plugin for the whole experiment. Empty (the default) turns
+# healing off regardless of what any step asks for.
+healing_backend: claude_code
