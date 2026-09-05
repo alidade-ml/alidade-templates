@@ -1,0 +1,53 @@
+# alidade canary — exercises the full submit lifecycle on Lambda.
+#
+# Invoked by `alidade admin canary`, NOT by `alidade submit`. The CLI verb
+# hands this YAML to the scheduler daemon — pre-flight, then submit, the same
+# two calls `alidade run` makes — and then runs the verifier suite against the
+# submit_id that comes back. It does not build an engine itself; a canary that
+# took a path no user takes would smoke-test nothing.
+#
+# Design: the experiment is intentionally trivial — open an Aim run,
+# emit ~100 metrics, close. It lives in alidade-templates, so the canary
+# exercises the same integration path a customer takes rather than importing
+# the engine from a repo only we can clone. The point is exercising alidade's
+# pipeline (enqueue, dispatch, fork, clone, version gate, acquire, setup,
+# sync_code, env wiring, parent card, thread replies, tag pushes, summarize,
+# release), not running real training. Anything more complex would just slow
+# the canary down without catching different regressions.
+#
+# Requires the scheduler to be running. Socket activation starts it on the
+# first connection, so this only bites on a NUC where it was never installed.
+#
+# Expected cost: ~$0.20 per run (smallest billable GPU for ~10 minutes
+# of wall-clock including acquire wait), plus however long the row waits in
+# the queue behind other work.
+
+experiment:
+  name: alidade-canary
+  # A public repo over https: it clones with no credential at all, which is
+  # what lets the canary run on a NUC that has no access to our private repos.
+  # `main` rather than a tag so drift shows up the moment it lands.
+  repo: https://github.com/alidade-ml/alidade-templates.git
+  ref: main
+  # The canary is a test, not a research artifact, and the runner cannot write
+  # to the template repo anyway. Tags are still created locally and recorded.
+  push_tags: false
+  budget_hours: 0.5
+  step_timeout_hours: 0.25
+  steps:
+    - label: emit-canary-metrics
+      command: |
+        # Lambda's base image has python+pip but no ML deps. The template
+        # pins its own dependencies, including the alidade-callbacks release
+        # the demo imports. ~30-60s install; acceptable for a manually-invoked
+        # ~$0.20 smoke test. `python -m pip` (not `pip`) so this installs into
+        # the interpreter that runs the workload.
+        python -m pip install --quiet -r canary/requirements.txt
+        python canary/train.py
+
+backend:
+  type: lambda
+  # Smallest billable GPU. The canary doesn't care which model the
+  # backend picks — it just needs an instance to come up + go down.
+  gpu_type: gpu_1x_a10
+
