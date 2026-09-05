@@ -1,0 +1,50 @@
+# Example Alidade experiment config
+#
+# Usage: alidade run configs/example_experiment.yaml
+#
+# System-level settings (Aim, Slack, secrets) are in:
+#   /etc/alidade/config.yaml    (shared)
+#   ~/.alidade/config.yaml      (per-user)
+
+experiment:
+  name: example-training-run
+  repo: git@github.com:acme-ml/transformer-lab.git
+  ref: main
+  linear_project: Ablations Q3   # Linear project for experiment docs
+  budget_hours: 8
+  step_timeout_hours: 3
+  preamble: |
+    source /tmp/alidade_env.sh 2>/dev/null
+    GPUS=$(nvidia-smi -L | wc -l)
+    LOGDIR="logs/exp-example"
+    mkdir -p "$LOGDIR"
+  steps:
+    - label: Install dependencies
+      command: pip install -r requirements.txt 2>&1 | tee "$LOGDIR/install.log"
+    - label: Convert data
+      command: python src/convert_data.py --dataset allenai/c4 --data_subset en --out_root ./data/c4 --splits train,val 2>&1 | tee "$LOGDIR/convert.log"
+    - label: Train model
+      command: composer -n $GPUS scripts/train.py configs/training/latent_bert_256.yaml 2>&1 | tee "$LOGDIR/train.log"
+    - label: Upload results
+      command: python scripts/hf_upload.py both --run_name latent_bert_256 2>&1 | tee "$LOGDIR/upload.log"
+
+backend:
+  type: lambda
+  gpu_type: gpu_8x_a100
+  remote_dir: ~/transformer-lab
+  region: auto
+  excludes:
+    - .git/
+    - __pycache__/
+    - "*.pyc"
+    - data/
+    - checkpoints/
+    - log_dir/
+    - logs/
+    - .venv/
+    - plans/
+
+healing:
+  enabled: true
+  provider: claude_code
+  max_retries: 3

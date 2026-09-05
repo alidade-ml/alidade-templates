@@ -7,7 +7,11 @@ experiments. Clone one, change the training loop, submit it.
 
 | Template | What it is |
 |---|---|
-| [`canary/`](canary/) | The smallest experiment that still exercises every integration point. No model, no dataset, no GPU. |
+| [`canary/`](canary/) | The smallest experiment that still exercises every integration point. No model, no dataset, no GPU. Submit it as-is: `alidade submit canary/canary.yaml`. |
+| [`starter/`](starter/) | A realistic multi-step experiment to copy and edit. It points at a repo that does not exist, on purpose: it is a shape to start from, not something to run. |
+
+Configs live here rather than in the alidade repo, so the engine ships no
+experiment definitions and no training code.
 
 ## canary
 
