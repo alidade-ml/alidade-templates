@@ -21,6 +21,12 @@ on:
   repository_dispatch:
     types: [callbacks-released]
 
+# A second push supersedes the first, and the first was still
+# billing. Cancelling it costs nothing and saves the whole run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   issues: write
