@@ -120,4 +120,4 @@ jobs:
           pip install --quiet -r training/requirements.txt pytest pyyaml
 
       - name: Train, and assert the loss falls
-        run: pytest tests/test_train_bert.py -q
+        run: pytest -m training tests/ -q

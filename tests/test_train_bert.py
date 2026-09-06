@@ -16,8 +16,14 @@ import sys
 from pathlib import Path
 
 import pytest
-import torch
 import yaml
+
+pytestmark = pytest.mark.training
+
+# Skip the module rather than fail collecting it. The marker alone is not
+# enough: -m filters after collection, and collection imports this file, so a
+# job that does not install torch would error before the filter ran.
+torch = pytest.importorskip("torch")
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
