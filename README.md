@@ -7,8 +7,11 @@ experiments. Clone one, change the training loop, submit it.
 
 | Template | What it is |
 |---|---|
-| [`canary/`](canary/) | The smallest experiment that still exercises every integration point. No model, no dataset, no GPU. Submit it as-is: `alidade submit canary/canary.yaml`. |
+| [`experiments/canary.yaml`](experiments/canary.yaml) | The smallest experiment that still exercises every integration point. No model, no dataset, no GPU. Its workload is [`canary/train.py`](canary/train.py). |
 | [`experiments/train_bert.yaml`](experiments/train_bert.yaml) | A real masked-language model, trained. Submit it as-is, then point it at your own repo and your own data. |
+
+Everything alidade parses lives in `experiments/`. Everything else is code the
+experiments run.
 
 Configs live here rather than in the alidade repo, so the engine ships no
 experiment definitions and no training code.
