@@ -1,0 +1,8 @@
+# Pinned to an exact release asset, not a version range: `releases/latest` for
+# alidade-callbacks still resolves to v1.1.2, which ships the pre-rename
+# `astrolabe_callbacks` package, so a range would install something whose
+# import fails.
+alidade-callbacks @ https://github.com/alidade-ml/alidade-callbacks/releases/download/v2.0.0-rc5/alidade_callbacks-2.0.0rc5-py3-none-any.whl
+aim>=3.29,<4
+torch>=2.4
+pyyaml>=6

@@ -1,0 +1,28 @@
+# Train the masked-language model in torch_models/.
+#
+# This is an alidade config: the file you hand to `alidade submit`. It says
+# which repo to clone, what to run, and what you are willing to spend. It says
+# nothing about the model, because that belongs in
+# training/configs/bert_tiny.yaml, which alidade never reads.
+#
+#   alidade submit experiments/train_bert.yaml
+#
+# To train your own model, point `repo` at your repository and change the step
+# command. Everything else here is a starting point.
+
+experiment:
+  name: train-bert
+  repo: https://github.com/alidade-ml/alidade-templates.git
+  ref: main
+  budget_hours: 1
+  step_timeout_hours: 0.5
+  steps:
+    - label: install-dependencies
+      command: python -m pip install --quiet -r training/requirements.txt
+    - label: train
+      # PYTHONPATH so `import torch_models` resolves from the repo root.
+      command: PYTHONPATH=. python training/train_bert.py --config training/configs/bert_tiny.yaml
+
+backend:
+  type: lambda
+  gpu_type: gpu_1x_a10

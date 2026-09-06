@@ -1,0 +1,23 @@
+# Model and training hyperparameters.
+#
+# Not an alidade config. This file is read by train_bert.py and alidade never
+# parses it. The alidade config, the one you submit, is in experiments/.
+# Keeping them apart is deliberate: they answer to different schemas and change
+# for different reasons.
+
+model:
+  vocab_size: 1024
+  hidden_size: 128
+  intermediate_size: 256
+  num_layers: 2
+  num_heads: 4
+  max_positions: 128
+
+training:
+  steps: 400
+  batch_size: 8
+  seq_len: 64
+  learning_rate: 0.003
+  grad_clip: 1.0
+  eval_every: 25
+  seed: 0
