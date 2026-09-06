@@ -27,12 +27,15 @@ import yaml
 REPO = Path(__file__).resolve().parent.parent
 THIS_REPO = "alidade-ml/alidade-templates"
 
-# Directories holding alidade configs: files you hand to `alidade submit`.
-# Named rather than globbed, because the other YAML in this repo is model and
-# trainer hyperparameters that alidade never parses, and a glob that happened
-# to exclude them by directory depth would start failing the moment someone
-# nested a config one level deeper.
-CONFIG_DIRS = ("canary", "experiments")
+# The one directory holding alidade configs: files you hand to `alidade submit`.
+# Named rather than globbed, because the other YAML here is model and trainer
+# hyperparameters that alidade never parses.
+#
+# One directory rather than two. The canary config used to sit beside the script
+# it runs, which the training template does not do, so the repo taught two
+# different habits. Everything alidade parses now lives in one place and
+# everything else is code.
+CONFIG_DIRS = ("experiments",)
 CONFIGS = sorted(c for d in CONFIG_DIRS for c in (REPO / d).glob("*.yaml"))
 
 
@@ -77,7 +80,7 @@ def test_every_path_it_runs_is_in_this_repo(config: Path):
 def test_the_canary_config_points_at_this_repo():
     """alidade fetches this file and submits it. If its repo drifts to somewhere
     else, the canary silently stops testing the template it came from."""
-    exp = yaml.safe_load((REPO / "canary" / "canary.yaml").read_text())["experiment"]
+    exp = yaml.safe_load((REPO / "experiments" / "canary.yaml").read_text())["experiment"]
     assert THIS_REPO in exp["repo"], exp["repo"]
     assert exp.get("push_tags") is False, (
         "the canary must not push tags: nobody running it can write to this repo"
