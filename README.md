@@ -8,6 +8,7 @@ experiments. Clone one, change the training loop, submit it.
 | Template | What it is |
 |---|---|
 | [`canary/`](canary/) | The smallest experiment that still exercises every integration point. No model, no dataset, no GPU. Submit it as-is: `alidade submit canary/canary.yaml`. |
+| [`experiments/train_bert.yaml`](experiments/train_bert.yaml) | A real masked-language model, trained. Submit it as-is, then point it at your own repo and your own data. |
 
 Configs live here rather than in the alidade repo, so the engine ships no
 experiment definitions and no training code.
@@ -44,6 +45,37 @@ Then point Aim at `/tmp/aim` to see the curve.
 range. `releases/latest` for `alidade-callbacks` still resolves to v1.1.2, which
 ships the pre-rename `astrolabe_callbacks` package, so a range would install
 something whose import fails.
+
+## Training something
+
+```bash
+alidade submit experiments/train_bert.yaml
+```
+
+Three files, and they answer to different schemas on purpose:
+
+| | |
+|---|---|
+| [`experiments/train_bert.yaml`](experiments/train_bert.yaml) | the alidade config. Which repo, what to run, what you will spend. The only file alidade parses. |
+| [`training/configs/bert_tiny.yaml`](training/configs/bert_tiny.yaml) | model and trainer hyperparameters, read by `train_bert.py`. alidade never sees it. |
+| [`training/train_bert.py`](training/train_bert.py) | the script the experiment runs, and the file you edit. |
+
+Conflating the first two is the most common early mistake, so they live apart
+and a test pins the separation.
+
+The model in [`torch_models/`](torch_models/) is a small BERT: rotary
+embeddings, RMSNorm, gated MLP, eager attention. It is real transformer code cut
+down from a research codebase until it trains on a CPU in seconds, which is why
+CI can run it. A template CI cannot run is a template that rots, and this repo
+has already deleted one config for exactly that.
+
+The FlashAttention path was removed with the same reasoning: it needs a GPU and
+a compiled kernel, and the eager fallback it used to sit beside runs anywhere.
+
+It trains on random tokens tiled into a repeating motif, so the loss visibly
+falls rather than sitting flat at `ln(vocab_size)`. It is learning to copy from
+context, which is not useful, and is the point: replace `synthetic_batches` with
+your own loader and nothing else in the file has to change.
 
 ## What the badge means, and what it does not
 

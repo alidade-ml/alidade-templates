@@ -25,8 +25,15 @@ import pytest
 import yaml
 
 REPO = Path(__file__).resolve().parent.parent
-CONFIGS = sorted(REPO.glob("*/*.yaml"))
 THIS_REPO = "alidade-ml/alidade-templates"
+
+# Directories holding alidade configs: files you hand to `alidade submit`.
+# Named rather than globbed, because the other YAML in this repo is model and
+# trainer hyperparameters that alidade never parses, and a glob that happened
+# to exclude them by directory depth would start failing the moment someone
+# nested a config one level deeper.
+CONFIG_DIRS = ("canary", "experiments")
+CONFIGS = sorted(c for d in CONFIG_DIRS for c in (REPO / d).glob("*.yaml"))
 
 
 def _ids(paths):
@@ -75,3 +82,24 @@ def test_the_canary_config_points_at_this_repo():
     assert exp.get("push_tags") is False, (
         "the canary must not push tags: nobody running it can write to this repo"
     )
+
+
+def test_trainer_config_is_not_an_alidade_config():
+    """The two schemas are separate on purpose.
+
+    training/configs/ holds model and trainer hyperparameters, read by
+    train_bert.py. alidade never parses it. Conflating the two is the beginner
+    failure this repo's layout exists to prevent, so it is pinned rather than
+    left to convention.
+    """
+    trainer_configs = sorted((REPO / "training" / "configs").glob("*.yaml"))
+    assert trainer_configs, "no trainer configs found; this check would be vacuous"
+
+    for path in trainer_configs:
+        loaded = yaml.safe_load(path.read_text())
+        assert "experiment" not in loaded, (
+            f"{path.name} declares an alidade `experiment:` block. Either it is "
+            f"in the wrong directory, or an alidade config leaked into the "
+            f"trainer's hyperparameters."
+        )
+        assert {"model", "training"} <= set(loaded), sorted(loaded)
