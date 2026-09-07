@@ -24,10 +24,9 @@ def main() -> int:
             loss = 4.0 * math.exp(-step / 30.0) + 0.05 * math.sin(step * 0.3)
             run.log_train(loss=loss, step=step)
             run.log_eval(loss=loss + 0.1, step=step)
-            if step % 10 == 0:
-                # Without this the whole curve lands inside ~100ms and a reader
-                # polling for metrics can sample before the indexer has caught up.
-                time.sleep(0.05)
+            # Every step, not in bursts: a burst sleep makes wall_time a
+            # staircase, and spreads the curve too little for a polling reader.
+            time.sleep(0.05)
     return 0
 
 
