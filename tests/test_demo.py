@@ -151,6 +151,30 @@ class TestTheMetricsArrive:
                 f"{name} holds {counts[name]} values, expected {EXPECTED_STEPS}"
             )
 
+    def test_wall_time_advances_on_every_step(self, aim_repo):
+        """Sleeping in bursts made this a staircase: ten points a few
+        microseconds apart, then a 50ms jump. The metric is elapsed training
+        time, so a canary that only moves it every tenth step is not exercising
+        it. Reads by step_hash because Aim keys a sequence by a hash of the
+        step, so iteration order is not step order."""
+        assert _run_demo(_env(aim_repo)).returncode == 0
+
+        run = _find_run(aim_repo, SUBMIT_ID)
+        assert run is not None
+        m = next(m for m in run.metrics() if m.name == "wall_time")
+        by_step = [
+            float(m.values[m.data.step_hash(s)]) for s in range(EXPECTED_STEPS)
+        ]
+
+        assert by_step == sorted(by_step), "wall_time went backwards"
+        gaps = [b - a for a, b in zip(by_step, by_step[1:])]
+        # Loop overhead alone is ~1e-5, so this separates a real per-step
+        # sleep from a burst without pinning the sleep's exact duration.
+        assert min(gaps) >= 0.01, (
+            f"smallest step-to-step gap was {min(gaps):.6f}s — wall_time is "
+            f"not advancing every step"
+        )
+
     def test_wall_time_is_synthesized_by_the_library(self, aim_repo):
         """The demo never logs wall_time. Its presence is what distinguishes
         going through the callback from writing to Aim by hand, which is the
