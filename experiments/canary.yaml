@@ -1,25 +1,33 @@
 # alidade canary — exercises the full submit lifecycle on Lambda.
 #
-# Invoked by `alidade admin canary`, NOT by `alidade submit`. The CLI verb
-# hands this YAML to the scheduler daemon — pre-flight, then submit, the same
-# two calls `alidade run` makes — and then runs the verifier suite against the
-# submit_id that comes back. It does not build an engine itself; a canary that
-# took a path no user takes would smoke-test nothing.
+# Fetch it and run it. There is no admin gate and no special verb: the
+# point is that it takes exactly the path every other submit takes.
 #
-# Design: the experiment is intentionally trivial — open an Aim run,
-# emit ~100 metrics, close. It lives in alidade-templates, so the canary
-# exercises the same integration path a customer takes rather than importing
-# the engine from a repo only we can clone. The point is exercising alidade's
+#     curl -O https://raw.githubusercontent.com/alidade-ml/alidade-templates/main/experiments/canary.yaml
+#     alidade run canary.yaml
+#
+# It used to be `alidade admin canary`, a command that wrapped this file
+# and then ran a verifier suite against the submit id. The verb is gone —
+# a canary taking a path no user takes smoke-tests the wrapper, not the
+# product — and the checks it made are things you look at instead: the run
+# reaching COMPLETED, cost populated, metrics streaming in the dashboard,
+# and a Slack card if that plugin is configured. A completed run does not
+# prove those by itself, which is why they are worth looking at.
+#
+# Design: the experiment is intentionally trivial — open an Aim run, emit
+# ~100 metrics, close. It lives in alidade-templates, so it exercises the
+# same integration path a customer takes rather than importing an engine
+# from a repo only we can clone. The point is exercising alidade's
 # pipeline (enqueue, dispatch, fork, clone, version gate, acquire, setup,
-# sync_code, env wiring, parent card, thread replies, tag pushes, summarize,
-# release), not running real training. Anything more complex would just slow
-# the canary down without catching different regressions.
+# sync_code, env wiring, parent card, thread replies, tag pushes,
+# summarize, release), not running real training.
 #
 # Requires the scheduler to be running. Socket activation starts it on the
-# first connection, so this only bites on a NUC where it was never installed.
+# first connection, so this only bites on a NUC where it was never
+# installed.
 #
-# Expected cost: ~$0.20 per run (smallest billable GPU for ~10 minutes
-# of wall-clock including acquire wait), plus however long the row waits in
+# Expected cost: ~$0.20 per run (smallest billable GPU for ~10 minutes of
+# wall-clock including acquire wait), plus however long the row waits in
 # the queue behind other work.
 
 experiment:

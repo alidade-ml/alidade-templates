@@ -21,10 +21,15 @@ experiment definitions and no training code.
 `canary/train.py` opens a run, emits 100 steps of a loss-shaped curve under
 `train/` and `val/`, and closes. It finishes in seconds.
 
-It exists so an install can be verified end to end. `alidade admin canary` runs
-this exact file on a real GPU instance and then asserts that the metrics, tags,
-Slack card, git tag, cost record and dashboard entry all arrived. If you have
-just set up a NUC, this is what tells you it works.
+It exists so an install can be verified end to end. Fetch
+`experiments/canary.yaml` and `alidade run` it — anyone who can submit an
+experiment can, there is no admin gate — and it runs this exact file on a real
+GPU instance. If you have just set up a NUC, this is what tells you it works.
+
+A run reaching `COMPLETED` means the pipeline works. The things a completed run
+does not prove by itself are worth looking at afterwards: cost populated,
+metrics streaming in the dashboard, the git tag pushed, and a Slack card if
+that plugin is configured.
 
 It is also the shortest honest example of the integration. Everything that
 identifies a run (the Aim address, the experiment name, the tags) comes from the
