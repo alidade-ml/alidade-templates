@@ -1,7 +1,4 @@
-# Pinned to an exact release asset, not a version range.
-#
-# `releases/latest` for alidade-callbacks still resolves to v1.1.2, which ships
-# a wheel providing `astrolabe_callbacks`, the pre-rename package name. A range
-# would install that and `import alidade_callbacks` would fail.
-alidade-callbacks @ https://github.com/alidade-ml/alidade-callbacks/releases/download/v2.0.0-rc5/alidade_callbacks-2.0.0rc5-py3-none-any.whl
+# Pinned to an exact release asset: the library is on no package index, and
+# alidade's submit check reads the callbacks version from this URL.
+alidade-callbacks @ https://github.com/alidade-ml/alidade-callbacks/releases/download/v2.0.0/alidade_callbacks-2.0.0-py3-none-any.whl
 aim>=3.29,<4
